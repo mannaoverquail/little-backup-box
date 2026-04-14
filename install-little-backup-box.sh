@@ -42,7 +42,7 @@ if  [ "${OS_RELEASE}" == "13" ]; then
 elif  [ "${OS_RELEASE}" == "12" ]; then
 	# bookworm
 	echo -e "Note: It looks like you are running an outdated Raspberry Pi OS Bookworm system.\nThe current development version of Little Backup Box is no longer compatible with this release.\nThe last version supporting Bookworm will be installed instead.\nUpgrading to Trixie is strongly recommended."
-	branch='bookworm'; curl -sSL https://raw.githubusercontent.com/outdoorbits/little-backup-box/${branch}/install-little-backup-box.sh | bash -s -- ${branch} 2> install-error.log
+	branch='bookworm'; curl -sSL https://raw.githubusercontent.com/mannaoverquail/little-backup-box/${branch}/install-little-backup-box.sh | bash -s -- ${branch} 2> install-error.log
 	exit
 else
 	echo -e "Sorry: Installation and updates are only supported on Raspberry Pi OS Trixie (main branch) and Bookworm (non-asterisk branch).\nThe Bookworm branch is no longer maintained — development has moved to Trixie."
@@ -95,7 +95,7 @@ echo "Cloning Little Backup Box"
 cd
 
 sudo rm -R ${INSTALLER_DIR} 2>/dev/null
-git clone --branch "${branch}" https://github.com/outdoorbits/little-backup-box.git
+git clone --branch "${branch}" https://github.com/mannaoverquail/little-backup-box.git
 GIT_CLONE=$?
 if [ "${GIT_CLONE}" -gt 0 ]; then
 	echo "Cloning little-backup-box from github.com failed. Please try again later."
