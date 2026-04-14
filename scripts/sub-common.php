@@ -67,6 +67,22 @@ function get_secondary_backup_selector($fieldname, $CloudServices, $config, $NVM
 				</optgroup>
 		<?php
 			}
+
+			if ($config['conf_IMMICH_ENABLED'] && $config['conf_IMMICH_SERVER_URL'] !== '' && $config['conf_IMMICH_API_KEY'] !== '') {
+		?>
+				<optgroup label="&rarr; Immich">
+					<option value="usb immich" <?php echo $BACKUP_DEFAULT_SOURCE2 . " " . $BACKUP_DEFAULT_TARGET2=="usb immich"?" selected":""; ?>>	<?php echo L::main_usb_button . L::right_arrow . L::box_backup_mode_immich; ?></option>
+					<?php
+						if ($NVMe_available) {
+							?>
+								<option value="nvme immich" <?php echo $BACKUP_DEFAULT_SOURCE2 . " " . $BACKUP_DEFAULT_TARGET2=="nvme immich"?" selected":""; ?>><?php echo L::main_nvme_button . L::right_arrow . L::box_backup_mode_immich; ?></option>
+							<?php
+						}
+					?>
+					<option value="internal immich" <?php echo $BACKUP_DEFAULT_SOURCE2 . " " . $BACKUP_DEFAULT_TARGET2=="internal immich"?" selected":""; ?>><?php echo L::main_internal_button . L::right_arrow . L::box_backup_mode_immich; ?></option>
+				</optgroup>
+		<?php
+			}
 		?>
 	</select>
 

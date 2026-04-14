@@ -344,7 +344,11 @@ class setup(object):
 					'conf_SOCIAL_MATRIX_HOMESERVER':					{'value': '', 'type': 'str'},
 					'conf_SOCIAL_MATRIX_TOKEN':							{'value': '', 'type': 'str'},
 					'conf_SOCIAL_MATRIX_ROOM_ID':						{'value': '', 'type': 'str'},
-					'conf_SOCIAL_MATRIX_ROOM_IDENTIFIER':				{'value': '', 'type': 'str'}
+					'conf_SOCIAL_MATRIX_ROOM_IDENTIFIER':				{'value': '', 'type': 'str'},
+					'conf_IMMICH_ENABLED':								{'value': False, 'type': 'bool'},
+					'conf_IMMICH_SERVER_URL':							{'value': '', 'type': 'str'},
+					'conf_IMMICH_API_KEY':								{'value': '', 'type': 'str'},
+					'conf_IMMICH_ALBUM':								{'value': '', 'type': 'str'}
 				}
 		)
 

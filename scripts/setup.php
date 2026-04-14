@@ -245,6 +245,7 @@
 		$conf_DIPLAY_IMAGES_KEEP					= isset($conf_DIPLAY_IMAGES_KEEP)?'true':'false';
 		$conf_SOCIAL_PUBLISH_DATE					= isset($conf_SOCIAL_PUBLISH_DATE)?'true':'false';
 		$conf_SOCIAL_PUBLISH_FILENAME				= isset($conf_SOCIAL_PUBLISH_FILENAME)?'true':'false';
+		$conf_IMMICH_ENABLED						= isset($conf_IMMICH_ENABLED)?'true':'false';
 
 		// Passwords
 		$Passwords	= explode(';', $constants['const_PASSWORDS_LIST']);
@@ -857,6 +858,73 @@ CONFIGDATA;
 								<input type="checkbox" id="conf_BACKUP_DEFAULT2_MOVE_FILES" name="conf_BACKUP_DEFAULT2_MOVE_FILES"<?php echo $config['conf_BACKUP_DEFAULT2_MOVE_FILES']=="1"?" checked":""; ?>>
 								<label for="conf_BACKUP_DEFAULT2_MOVE_FILES"><?php echo L::config_backup_move_files_label; ?></label><br />
 				</details>
+				</details>
+		</div>
+
+		<div class="card" style="margin-top: 2em;">
+			<details>
+				<summary style="letter-spacing: 1px; text-transform: uppercase;"><?php echo L::config_immich_section; ?></summary>
+
+				<h3><?php echo L::config_immich_section; ?></h3>
+					<input type="checkbox" id="conf_IMMICH_ENABLED" name="conf_IMMICH_ENABLED"<?php echo $config['conf_IMMICH_ENABLED']=="1"?" checked":""; ?>>
+					<label for="conf_IMMICH_ENABLED"><?php echo L::config_immich_enabled_label; ?></label><br />
+					<br />
+					<label for="conf_IMMICH_SERVER_URL"><?php echo L::config_immich_server_url_label; ?></label><br />
+					<input type="text" id="conf_IMMICH_SERVER_URL" name="conf_IMMICH_SERVER_URL" value="<?php echo $config['conf_IMMICH_SERVER_URL']; ?>" placeholder="<?php echo L::config_immich_server_url_placeholder; ?>" style="width: 100%;"><br />
+					<br />
+					<label for="conf_IMMICH_API_KEY"><?php echo L::config_immich_api_key_label; ?></label><br />
+					<input type="password" id="conf_IMMICH_API_KEY" name="conf_IMMICH_API_KEY" value="<?php echo $config['conf_IMMICH_API_KEY']; ?>" style="width: 100%;"><br />
+					<br />
+					<label for="conf_IMMICH_ALBUM"><?php echo L::config_immich_album_label; ?></label><br />
+					<input type="text" id="conf_IMMICH_ALBUM" name="conf_IMMICH_ALBUM" value="<?php echo $config['conf_IMMICH_ALBUM']; ?>" style="width: 100%;"><br />
+					<br />
+					<button type="button" id="immich_test_btn" onclick="testImmichConnection()"><?php echo L::config_immich_test_connection; ?></button>
+					<span id="immich_test_result"></span>
+					<script>
+					function testImmichConnection() {
+						var btn = document.getElementById('immich_test_btn');
+						var result = document.getElementById('immich_test_result');
+						var serverUrl = document.getElementById('conf_IMMICH_SERVER_URL').value;
+						var apiKey = document.getElementById('conf_IMMICH_API_KEY').value;
+
+						if (!serverUrl || !apiKey) {
+							result.innerHTML = '<span style="color:red;"><?php echo L::config_immich_not_configured; ?></span>';
+							return;
+						}
+
+						btn.disabled = true;
+						result.innerHTML = '...';
+
+						// Use the Immich API server-info endpoint directly from the browser
+						var url = serverUrl.replace(/\/+$/, '') + '/api/server/ping';
+						fetch(url, {
+							method: 'GET',
+							headers: {
+								'x-api-key': apiKey,
+								'Accept': 'application/json'
+							}
+						})
+						.then(function(response) {
+							if (response.ok) {
+								return response.json();
+							}
+							throw new Error('HTTP ' + response.status);
+						})
+						.then(function(data) {
+							if (data && data.res === 'pong') {
+								result.innerHTML = '<span style="color:green;">&#10004; <?php echo L::config_immich_test_success; ?></span>';
+							} else {
+								result.innerHTML = '<span style="color:green;">&#10004; <?php echo L::config_immich_test_success; ?></span>';
+							}
+						})
+						.catch(function(err) {
+							result.innerHTML = '<span style="color:red;">&#10008; <?php echo L::config_immich_test_failed; ?> (' + err.message + ')</span>';
+						})
+						.finally(function() {
+							btn.disabled = false;
+						});
+					}
+					</script>
 			</details>
 		</div>
 

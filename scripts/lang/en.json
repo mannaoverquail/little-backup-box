@@ -132,7 +132,8 @@
         "social_telegram": "Telegram",
         "social_mastodon": "Mastodon",
         "social_bluesky": "Bluesky",
-        "social_matrix": "Matrix"
+        "social_matrix": "Matrix",
+        "immich": "Immich"
       },
       "nvme": "NVMe SSD",
       "nvme_source": "USB-source",
@@ -645,6 +646,19 @@
       "power_off_idle_time_header": "Power down after idle-time",
       "power_off_idle_time_label": "Select the idle time after which the system should be stopped.",
       "power_off_idle_time_none": "never"
+    },
+    "immich": {
+      "section": "Immich",
+      "enabled_label": "Enable Immich backup",
+      "server_url_label": "Immich Server URL",
+      "server_url_placeholder": "http://192.168.1.100:2283",
+      "api_key_label": "API Key",
+      "album_label": "Album name (leave empty for default library)",
+      "test_connection": "Test Connection",
+      "test_success": "Connection successful!",
+      "test_failed": "Connection failed!",
+      "not_installed": "immich-go is not installed.",
+      "not_configured": "Immich is not configured."
     },
     "social": {
       "section": "Social media",

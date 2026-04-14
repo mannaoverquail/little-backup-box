@@ -1338,7 +1338,7 @@ if __name__ == "__main__":
 		help=f'Action name, one of {Actions}'
 	)
 
-	StorageNames	= ['usb', 'internal', 'nvme', 'camera', 'cloud:SERVICE_NAME', 'cloud_rsync']
+	StorageNames	= ['usb', 'internal', 'nvme', 'camera', 'cloud:SERVICE_NAME', 'cloud_rsync', 'immich']
 	parser.add_argument(
 		'--StorageName',
 		'-s',

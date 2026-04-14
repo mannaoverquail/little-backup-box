@@ -94,11 +94,21 @@
 		'cloud'		=> array_merge($CloudServices_marked, $LocalNetworkServices)
 	);
 
+	// immich
+	$ImmichServices	= array();
+	if ($config['conf_IMMICH_ENABLED'] && $config['conf_IMMICH_SERVER_URL'] !== '' && $config['conf_IMMICH_API_KEY'] !== '') {
+		$ImmichServices[]	= 'immich';
+	}
+
 	$TargetServices			= array(
 		'usb'		=> $LocalServices,
 		'cloud'		=> $CloudServices_marked,
 		'social'	=> $SocialServices_configured
 	);
+
+	if (!empty($ImmichServices)) {
+		$TargetServices['cloud']	= array_merge($ImmichServices, $TargetServices['cloud']);
+	}
 ?>
 
 <html lang="<?php echo $config["conf_LANGUAGE"]; ?>" data-theme="<?php echo $theme; ?>">
@@ -132,7 +142,11 @@
 					((ActiveSource.value === 'anyusb') && TargetService.startsWith('social')) ||
 					((ActiveSource.value === 'camera') && TargetService.startsWith('social')) ||
 					(ActiveSource.value.startsWith('cloud') && TargetService.startsWith('social')) ||
-					((ActiveSource.value === 'ftp') && TargetService.startsWith('social'))
+					((ActiveSource.value === 'ftp') && TargetService.startsWith('social')) ||
+					((ActiveSource.value === 'anyusb') && (TargetService === 'immich')) ||
+					((ActiveSource.value === 'camera') && (TargetService === 'immich')) ||
+					(ActiveSource.value.startsWith('cloud') && (TargetService === 'immich')) ||
+					((ActiveSource.value === 'ftp') && (TargetService === 'immich'))
 				) {
 					document.getElementById("Target_" + TargetService).disabled = true;
 				} else {
@@ -244,6 +258,9 @@
 								}
 								elseif ($LabelName == 'bluesky') {
 									$LabelName		= l::box_backup_mode_social_bluesky;
+								}
+								elseif ($LabelName == 'immich') {
+									$LabelName		= l::box_backup_mode_immich;
 								}
 
 								print("<button class='$ButtonClass' name='TargetDevice' value='$Storage' id='Target_$Storage'>$LabelName</button></br>");

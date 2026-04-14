@@ -191,6 +191,13 @@ class backup(object):
 
 		self.TransferMode	= None if self.SourceStorageType == 'ftp' else self.TransferMode
 		self.TransferMode	= 'social' if self.TargetStorageType == 'social' else self.TransferMode
+		self.TransferMode	= 'immich' if self.TargetStorageType == 'immich' else self.TransferMode
+
+		# Immich config
+		self.conf_IMMICH_ENABLED		= self.__setup.get_val('conf_IMMICH_ENABLED')
+		self.conf_IMMICH_SERVER_URL		= self.__setup.get_val('conf_IMMICH_SERVER_URL')
+		self.conf_IMMICH_API_KEY			= self.__setup.get_val('conf_IMMICH_API_KEY')
+		self.conf_IMMICH_ALBUM			= self.__setup.get_val('conf_IMMICH_ALBUM')
 
 		# set vpn dummy before possible abort by next step: check mode combination
 		self.vpn	= False
@@ -229,7 +236,11 @@ class backup(object):
 		# Set the PWR LED to blink short to indicate waiting for the target device
 		lib_system.rpi_leds(led='PWR', trigger='timer', delay_on=250, delay_off=750, brightness=1)
 
-		if self.TargetStorageType in ['usb', 'internal', 'nvme', 'cloud', 'cloud_rsync', 'social']:
+		if self.TargetStorageType == 'immich':
+			# Immich is a virtual target - no mount needed
+			self.TargetDevice	= None
+			self.__log.message('Immich target: no mount required')
+		elif self.TargetStorageType in ['usb', 'internal', 'nvme', 'cloud', 'cloud_rsync', 'social']:
 			self.TargetDevice	= lib_storage.storage(StorageName=TargetName, Role=lib_storage.role_Target, WaitForDevice=True, DeviceIdentifierPresetThis=self.DeviceIdentifierPresetTarget, DeviceIdentifierPresetOther=self.DeviceIdentifierPresetSource)
 			self.TargetDevice.mount()
 		else:
@@ -249,10 +260,10 @@ class backup(object):
 			return()
 
 		# backup
-		if (self.TargetDevice and (self.SourceStorageType not in ['thumbnails', 'database', 'exif', 'rename'])):
+		if ((self.TargetDevice or self.TargetStorageType == 'immich') and (self.SourceStorageType not in ['thumbnails', 'database', 'exif', 'rename'])):
 			self.backup()
 
-		if not self.TransferMode is None and not self.TransferMode in ['social']:
+		if not self.TransferMode is None and not self.TransferMode in ['social', 'immich']:
 			# rename
 			if self.DoRenameFiles:
 				self.RenameFiles()
@@ -505,10 +516,14 @@ class backup(object):
 		if self.TargetStorageType == "social" and self.SourceStorageType not in ['usb', 'internal', 'nvme']:
 			return(False)
 
+		# immich can upload from local storage only
+		if self.TargetStorageType == "immich" and self.SourceStorageType not in ['usb', 'internal', 'nvme']:
+			return(False)
+
 		return (True)
 
 	def backup(self):
-		if not self.TargetDevice:
+		if not self.TargetDevice and self.TargetStorageType != 'immich':
 			return()
 
 # prepare to manage sources
@@ -614,9 +629,9 @@ class backup(object):
 				SourceStorageType		= self.SourceDevice.StorageType,
 				SourceService			= self.SourceDevice.ServiceName,
 				SourceDeviceLbbDeviceID	= self.SourceDevice.LbbDeviceID,
-				TargetStorageType		= self.TargetDevice.StorageType,
-				TargetService			= self.TargetDevice.ServiceName,
-				TargetDeviceLbbDeviceID = self.TargetDevice.LbbDeviceID,
+				TargetStorageType		= self.TargetDevice.StorageType if self.TargetDevice else 'immich',
+				TargetService			= self.TargetDevice.ServiceName if self.TargetDevice else '',
+				TargetDeviceLbbDeviceID = self.TargetDevice.LbbDeviceID if self.TargetDevice else '',
 				TransferMode			= 'gphoto2' if SourceStorageType == 'camera' else self.TransferMode,
 				CheckSum				= self.DoChecksum,
 				move_files				= self.move_files,
@@ -847,6 +862,63 @@ class backup(object):
 						self.__reporter.set_values(FilesProcessed=progress.CountProgress, FilesCopied=progress.CountJustCopied)
 						self.__reporter.set_values(SyncReturnCode=(missing == 0))
 
+### immich upload
+					elif self.TransferMode == 'immich':
+						# Check if immich-go is installed
+						try:
+							subprocess.check_output(['which', 'immich-go'])
+						except:
+							self.__log.message('Error: immich-go is not installed.', 1)
+							self.__reporter.add_error('Err.: immich-go not installed!')
+							SyncReturnCode	= 1
+							self.__reporter.set_values(SyncReturnCode=SyncReturnCode)
+							break
+
+						# Check if immich is configured
+						if not self.conf_IMMICH_ENABLED or not self.conf_IMMICH_SERVER_URL or not self.conf_IMMICH_API_KEY:
+							self.__log.message('Error: Immich is not configured.', 1)
+							self.__reporter.add_error('Err.: Immich not configured!')
+							SyncReturnCode	= 1
+							self.__reporter.set_values(SyncReturnCode=SyncReturnCode)
+							break
+
+						# Build immich-go upload command
+						SourcePath	= os.path.join(self.SourceDevice.MountPoint, SubPathAtSource) if SubPathAtSource else self.SourceDevice.MountPoint
+
+						immichCommand	= [
+							'immich-go', 'upload',
+							'--server', self.conf_IMMICH_SERVER_URL,
+							'--api-key', self.conf_IMMICH_API_KEY
+						]
+
+						# Add album if configured
+						if self.conf_IMMICH_ALBUM:
+							immichCommand	+= ['--album', self.conf_IMMICH_ALBUM]
+
+						immichCommand.append(SourcePath)
+
+						self.__log.message(f"immich-go command: {' '.join(immichCommand)}", 3)
+
+						with subprocess.Popen(immichCommand, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, bufsize=1, text=True) as self.BackupProcess:
+							while True:
+								SyncOutputLine = self.BackupProcess.stdout.readline()
+								if not SyncOutputLine:
+									break
+
+								SyncOutputLine = SyncOutputLine.strip()
+								self.__log.message(f"immich-go: {SyncOutputLine}", 3)
+								self.__reporter.add_synclog(f"{SyncOutputLine}\n")
+
+								# Parse progress from immich-go output
+								if 'Uploaded' in SyncOutputLine or 'uploaded' in SyncOutputLine:
+									progress.progress()
+
+							self.__reporter.set_values(FilesProcessed=progress.CountProgress, FilesCopied=progress.CountJustCopied)
+
+							self.BackupProcess.wait()
+							SyncReturnCode	= self.BackupProcess.returncode
+							self.__reporter.set_values(SyncReturnCode=SyncReturnCode)
+
 ### rsync or rclone backup
 					else:
 						if not self.TransferMode in ['rsync', 'rclone']:
@@ -891,7 +963,7 @@ class backup(object):
 						self.__reporter.add_synclog(f"\n** VPN: {self.vpn.check_status()['message']} **\n\n")
 
 					# Remove empty files (maybe can result from disconnection of a source-device)
-					if self.TargetDevice.mountable and self.TargetDevice.FilesStayInPlace:
+					if self.TargetDevice and self.TargetDevice.mountable and self.TargetDevice.FilesStayInPlace:
 						SourceCommand	= ['find',  os.path.join(self.TargetDevice.MountPoint, self.TargetDevice.CloudBaseDir, self.SourceDevice.SubPathAtTarget), '-type', 'f','-size', '0', '-not', '-name', '*.lbbid']
 
 						emptyFiles	= []
@@ -1709,7 +1781,7 @@ if __name__ == "__main__":
 	SocialServices	= lib_socialmedia.socialmedia().get_social_services()
 	SocialServices	= [f'social:{SocialService}' for SocialService in SocialServices]
 
-	TargetChoices	= ['usb', 'internal', 'nvme'] + CloudServices + ['cloud_rsync'] + SocialServices
+	TargetChoices	= ['usb', 'internal', 'nvme'] + CloudServices + ['cloud_rsync', 'immich'] + SocialServices
 	parser.add_argument(
 		'--TargetName',
 		'-t',
@@ -1815,7 +1887,7 @@ if __name__ == "__main__":
 		help=f'Source name, one of {SecSourceChoices}'
 	)
 
-	SecTargetChoices	= CloudServices + ['cloud_rsync']
+	SecTargetChoices	= CloudServices + ['cloud_rsync', 'immich']
 	parser.add_argument(
 		'--SecTargetName',
 		'-2t',
